@@ -9483,13 +9483,41 @@ static int LUACALL wxLua_wxDC_DrawPolygonList(lua_State *L)
     wxCoord yoffset = (argCount >= 4 ? (wxCoord)wxlua_getnumbertype(L, 4) : 0);
     // wxCoord xoffset = 0
     wxCoord xoffset = (argCount >= 3 ? (wxCoord)wxlua_getnumbertype(L, 3) : 0);
-    // wxList points
-    wxList * points = (wxList *)wxluaT_getuserdatatype(L, 2, wxluatype_wxList);
-    // get this
-    wxDC * self = (wxDC *)wxluaT_getuserdatatype(L, 1, wxluatype_wxDC);
-    // call DrawPolygon
-    self->DrawPolygon(points, xoffset, yoffset, fill_style);
-
+	if(lua_type(L, 2)==LUA_TTABLE){
+		unsigned int n=lua_objlen(L, 2);
+		wxPoint * points=new wxPoint[n];
+		unsigned int i;
+		wxList list;
+		for(i=0;i<n;i++){
+			lua_rawgeti(L, 2, i+1);
+			int tp=lua_type(L, -1);
+			if(tp==LUA_TTABLE){
+				lua_rawgeti(L, -1, 1);
+				points[i].x=lua_tointeger(L, -1);
+				lua_pop(L, 1);
+				lua_rawgeti(L, -1, 2);
+				points[i].y=lua_tointeger(L, -1);
+				lua_pop(L, 1);
+			}else{
+				wxPoint *p=(wxPoint*)wxluaT_getuserdatatype(L, -1, wxluatype_wxPoint);
+				points[i].x=p->x;
+				points[i].y=p->y;
+			}
+			lua_pop(L,1);
+			// printf("got one point(%d,%d),type=%d\n", points[i].x, points[i].y,tp);
+			list.Append((wxObject*)&points[i]);
+		}
+		wxDC * self = (wxDC *)wxluaT_getuserdatatype(L, 1, wxluatype_wxDC);
+		self->DrawPolygon(&list, xoffset, yoffset, fill_style);
+		delete points;
+	}else{
+	    // wxList points
+	    wxList * points = (wxList *)wxluaT_getuserdatatype(L, 2, wxluatype_wxList);
+	    // get this
+	    wxDC * self = (wxDC *)wxluaT_getuserdatatype(L, 1, wxluatype_wxDC);
+	    // call DrawPolygon
+	    self->DrawPolygon(points, xoffset, yoffset, fill_style);
+	}
     return 0;
 }
 
